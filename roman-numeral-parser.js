@@ -18,12 +18,6 @@ const token_types = {
 // "left".
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Operator_Precedence
 const operator_precedence_map = {
-    "(": { 
-        precedence: 21,
-    }, 
-    ")": { 
-        precedence: 21,
-    },
     "*": {
         associativity: "left",
         precedence: 15,
@@ -40,8 +34,13 @@ const operator_precedence_map = {
         associativity: "left",
         precedence: 14,
      },
-     MINIMUM_PRECEDENCE: 14,
 };
+
+function AstNode(token, leftNode, rightNode) {
+    this.token = token.value;
+    this.leftNode = leftNode;
+    this.rightNode = rightNode;
+}
 
 const is_number = (character) => {
     return /\d/.test(character);
@@ -141,9 +140,32 @@ const parse = (tokens) => {
     const output = []; // queue
 
     tokens.forEach((token) => {
-        // do something ...
+        if (token.type === token_types.DIGIT) {
+            output.push(token);
+        } else if (token.type === token_types.OPERATOR) {
+            while (peek(operators) && (peek(operators).type === token_types.OPERATOR)
+                && (
+                    (associativity(token) === "left" && precedence(token) < precedence(peek(operators))) ||
+                    (associativity(token) === "right" && precedence(token) < precedence(peek(operators)))
+                 )
+            ) {
+                output.push(operators.pop());
+            }
+
+            operators.push(token);
+        } else if (token.type === token_types.L_PARENS) {
+            operators.push(token);
+        } else if (token.type === token_types.R_PARENS) {
+            while (peek(operators) && peek(operators).type !== token_types.L_PARENS) {
+                output.push(operators.pop());
+            }
+
+            output.pop();
+        }
+
     });
 
+    return output.concat(operators.reverse());
 };
 
 const convert_numeral_to_base_10 = (numeral) => {
@@ -179,6 +201,10 @@ const is_recognized_numeral = (numeral) => {
 
 const ts = tokenize(numeral_literal);
 console.log(ts);
+
+console.log("----------------------------");
+
+console.log(parse(ts));
 
 // does class conversion help?
 // it does if we are running a console app that is running in the engine, yeah, because there is a defined structure
