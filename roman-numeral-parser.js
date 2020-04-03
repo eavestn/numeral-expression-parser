@@ -13,16 +13,38 @@ const token_types = {
 };
 
 const operator_precedence_map = {
-    "(": 21, ")": 21, "*": 15, "/": 15,  "+": 14, "-": 13, MINIMUM_PRECEDENCE: 13
-}
+    "(": { 
+        precedence: 21 
+    }, 
+    ")": { 
+        precedence: 21
+    },
+    "*": {
+        associativity: "left",
+        precedence: 15,
+    }, 
+    "/": {
+        associativity: "left",
+        precedence: 15,
+    }, 
+     "+": { 
+        associativity: "left", 
+        precedence: 14,
+    }, 
+    "-": {
+        associativity: "left",
+        precedence: 13,
+     },
+     MINIMUM_PRECEDENCE: 13
+};
 
 const is_number = (character) => {
     return /\d/.test(character);
-}
+};
 
 const is_operator = (character) => {
     return /\+|-|\*|\/|\^/.test(character);
-}
+};
 
 const is_left_parens = (ch) => {
 	return /\(/.test(ch);
@@ -94,7 +116,13 @@ const tokenize = (base_10_expression_literal) => {
     }
 
     return tokens;
-}
+};
+
+const parse = (tokens) => {
+    const operators = []; // stack
+    const output = []; // queue
+
+};
 
 const convert_numeral_to_base_10 = (numeral) => {
     // could also throw a call to is_recognized_numeral in here
