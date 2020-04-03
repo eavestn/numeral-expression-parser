@@ -12,12 +12,17 @@ const token_types = {
     R_PARENS: "r_parens",
 };
 
+// Operator precedence borrowed from JS specifications as outlined on MDN; however, at this stage, 
+// any "precedence" value is arbitrary to some degree as long as the correct precedents are shared.
+// As we aren't doing anything sophisticated (necessarily) with operators, only existing assoc. is
+// "left".
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Operator_Precedence
 const operator_precedence_map = {
     "(": { 
-        precedence: 21 
+        precedence: 21,
     }, 
     ")": { 
-        precedence: 21
+        precedence: 21,
     },
     "*": {
         associativity: "left",
@@ -33,9 +38,9 @@ const operator_precedence_map = {
     }, 
     "-": {
         associativity: "left",
-        precedence: 13,
+        precedence: 14,
      },
-     MINIMUM_PRECEDENCE: 13
+     MINIMUM_PRECEDENCE: 14,
 };
 
 const is_number = (character) => {
@@ -53,6 +58,19 @@ const is_left_parens = (ch) => {
 const is_right_parens = (ch) => {
 	return /\)/.test(ch);
 };
+
+const precedence = (token) => {
+    return operator_precedence_map[token.value].precedence;
+};
+
+const associativity = (token) => {
+    return operator_precedence_map[token.value].associativity;
+}
+
+const peek = (arr) => {
+    // not as "sexy" as slice(-1)[0] but faster: https://jsperf.com/last-array-element2
+    return arr[arr.length - 1];
+} 
 
 const assign_token_type = (character) => {
     const token = { value: character, };
@@ -121,6 +139,10 @@ const tokenize = (base_10_expression_literal) => {
 const parse = (tokens) => {
     const operators = []; // stack
     const output = []; // queue
+
+    tokens.forEach((token) => {
+        // do something ...
+    });
 
 };
 
