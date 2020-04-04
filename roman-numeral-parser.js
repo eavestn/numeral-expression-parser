@@ -125,6 +125,7 @@ const tokenize = (base_10_expression_literal) => {
             case token_types.DIGIT:
                 base_10_buffer.push(token.value); 
                 break;
+
             case token_types.OPERATOR:
                 collectAndResetNumberBuffer();
                 tokens.push(token);
@@ -203,6 +204,12 @@ const interpret_tree = (ast_node) => {
     }
 };
 
+const is_roman_numeral = (str) => {
+    // one or more of; very simple (more sophisticated checks possible) - for more complex:
+    // https://stackoverflow.com/questions/267399/how-do-you-match-only-valid-roman-numerals-with-a-regular-expression
+    return /^[MDCLXVI]+$/gmi.test(str); 
+}
+
 const convert_numeral_to_base_10 = (numeral) => {
     // could also throw a call to is_recognized_numeral in here
     if (typeof numeral !== "string") {
@@ -215,7 +222,7 @@ const convert_numeral_to_base_10 = (numeral) => {
         // this syntax is a little gross; effectively it's saying {"I"} where "I" 
         //is the value of array at index +1
         const next_base_10_value = numeral_base_10_map[array[index + 1]];
-        const current_base_10_value = numeral_base_10_map[array[index]];
+        const current_base_10_value = numeral_base_10_map[value];
         
         // if the current value being evaluated is _less_ than that after it, we know it is used 
         // as a "subtractor"; otherwise, we know it is a contributor to the overall total - even
@@ -230,13 +237,27 @@ const convert_numeral_to_base_10 = (numeral) => {
     return base_10_value;
 };
 
-const is_recognized_numeral = (numeral) => {
-    throw new Error("is_recognized_numeral not implemented")
+const translate_expression = (expression) => {
+    const translated_array = expression.split(" ").map(element => {
+        if (is_roman_numeral(element)) {
+            return convert_numeral_to_base_10(element);
+        }
+
+        return element;
+    });
+
+    return translated_array.join(" ");
 };
 
-const ts = tokenize(numeral_literal);
-console.log(ts);
+const s = "1230 + 1"; // reverse for error; assumption is in flushing of buffer bug
+const result1 = interpret_tree(parse(tokenize(s)));
+const result2 = parse(tokenize(s));
+//interpret_tree(
+  //  parse(
+     //   tokenize(
+            //translate_expression(numeral_literal)
+        //)
+    //)
+//);
 
-console.log("----------------------------");
-
-console.log(interpret_tree(parse(ts)));
+console.log(result1);
