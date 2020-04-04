@@ -17,22 +17,34 @@ const token_types = {
 // As we aren't doing anything sophisticated (necessarily) with operators, only existing assoc. is
 // "left".
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Operator_Precedence
-const operator_precedence_map = {
+const operator_precedence_and_evaluator_map = {
     "*": {
         associativity: "left",
         precedence: 15,
+        evaluate: function (x, y) {
+            return Number(x) * Number(y);
+        },
     }, 
     "/": {
         associativity: "left",
         precedence: 15,
+        evaluate: function (x, y) {
+            return Number(x) / Number(y);
+        },
     }, 
      "+": { 
         associativity: "left", 
         precedence: 14,
+        evaluate: function (x, y) {
+            return Number(x) + Number(y);
+        },
     }, 
     "-": {
         associativity: "left",
         precedence: 14,
+        evaluate: function (x, y) {
+            return Number(x) - Number(y);
+        },
      },
 };
 
@@ -53,11 +65,11 @@ const is_right_parens = (ch) => {
 };
 
 const precedence = (token) => {
-    return operator_precedence_map[token.value].precedence;
+    return operator_precedence_and_evaluator_map[token.value].precedence;
 };
 
 const associativity = (token) => {
-    return operator_precedence_map[token.value].associativity;
+    return operator_precedence_and_evaluator_map[token.value].associativity;
 }
 
 // peek and add_node could have been assigned to the array prototype for better readability in 
@@ -73,10 +85,10 @@ const add_node = (arr, token) => {
     arr.push(new AstNode(token, left, right));
 }
 
-function AstNode(token, leftNode, rightNode) {
-    this.token = token.value;
-    this.leftNode = leftNode;
-    this.rightNode = rightNode;
+function AstNode(token, left_node, right_node) {
+    this.token = token;
+    this.left_node = left_node;
+    this.right_node = right_node;
 }
 
 const assign_token_type = (character) => {
@@ -181,6 +193,16 @@ const parse = (tokens) => {
     return output.pop();
 };
 
+const interpret_tree = (ast_node) => {
+    if (ast_node.token.type === token_types.DIGIT) {
+        return ast_node.token.value;
+    } else {
+        const token_1_value = interpret_tree(ast_node.left_node);
+        const token_2_value = interpret_tree(ast_node.right_node);
+        return operator_precedence_and_evaluator_map[ast_node.token.value].evaluate(token_1_value, token_2_value);
+    }
+};
+
 const convert_numeral_to_base_10 = (numeral) => {
     // could also throw a call to is_recognized_numeral in here
     if (typeof numeral !== "string") {
@@ -217,4 +239,4 @@ console.log(ts);
 
 console.log("----------------------------");
 
-console.log(parse(ts));
+console.log(interpret_tree(parse(ts)));
