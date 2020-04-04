@@ -36,12 +36,6 @@ const operator_precedence_map = {
      },
 };
 
-function AstNode(token, leftNode, rightNode) {
-    this.token = token.value;
-    this.leftNode = leftNode;
-    this.rightNode = rightNode;
-}
-
 const is_number = (character) => {
     return /\d/.test(character);
 };
@@ -66,21 +60,31 @@ const associativity = (token) => {
     return operator_precedence_map[token.value].associativity;
 }
 
+// peek and add_node could have been assigned to the array prototype for better readability in 
+// code making use of the two functions, below. For the sake of time I didn't do this clean up.
 const peek = (arr) => {
     // not as "sexy" as slice(-1)[0] but faster: https://jsperf.com/last-array-element2
     return arr[arr.length - 1];
 } 
 
-const addNode = (arr, token) => {
+const add_node = (arr, token) => {
     const right = arr.pop();
     const left = arr.pop();
     arr.push(new AstNode(token, left, right));
 }
 
+function AstNode(token, leftNode, rightNode) {
+    this.token = token.value;
+    this.leftNode = leftNode;
+    this.rightNode = rightNode;
+}
+
 const assign_token_type = (character) => {
     const token = { value: character, };
     
-    // can care about a lesser set of things (no "." as we are dealing with ints)
+    // can care about a lesser set of things (e.g. no "." as we are dealing with ints);
+    // this is - theoretically - less efficient than a class for any compiler-based 
+    // optimizations by the JIT as structure can't be predicted.
     if (is_number(character)) { 
         token.type = token_types.DIGIT;
     } else if (is_operator(character)) {
@@ -95,10 +99,13 @@ const assign_token_type = (character) => {
 };
 
 const tokenize = (base_10_expression_literal) => {
+    // establish a buffer (base_10_buffer_ for long-running numerical conversions as this is much faster in
+    // certain engines than string concatentation. for token_candidates remove white space and convert to 
+    // array of token "candidates" (uninterpreted characters)
+    // https://mattsnider.com/use-a-string-buffer-for-better-performance/
     const tokens = [];
-    const base_10_buffer = []; // https://mattsnider.com/use-a-string-buffer-for-better-performance/
-    const token_candidates = base_10_expression_literal.replace(/\s+/g, "").split(""); // remove white space; convert to array of token "candidates" (uninterpreted characters)
-
+    const base_10_buffer = []; 
+    const token_candidates = base_10_expression_literal.replace(/\s+/g, "").split("");
     token_candidates.forEach((character, index) => {
         const token = assign_token_type(character);
 
@@ -152,7 +159,7 @@ const parse = (tokens) => {
             while (peek(operators) && peek(operators).type === token_types.OPERATOR
                 && (associativity(token) === "left" && precedence(token) <= precedence(peek(operators)))
             ) {
-                addNode(output, operators.pop());
+                add_node(output, operators.pop());
             }
 
             operators.push(token);
@@ -160,7 +167,7 @@ const parse = (tokens) => {
             operators.push(token);
         } else if (token.type === token_types.R_PARENS) {
             while (peek(operators) && peek(operators).type !== token_types.L_PARENS) {
-                addNode(output, operators.pop());
+                add_node(output, operators.pop());
             }
 
             operators.pop();
@@ -168,7 +175,7 @@ const parse = (tokens) => {
     });
 
     while (peek(operators)) {
-        addNode(output, operators.pop());
+        add_node(output, operators.pop());
     }
 
     return output.pop();
@@ -202,7 +209,7 @@ const convert_numeral_to_base_10 = (numeral) => {
 };
 
 const is_recognized_numeral = (numeral) => {
-    // no repeats? 
+    throw new Error("is_recognized_numeral not implemented")
 };
 
 const ts = tokenize(numeral_literal);
@@ -211,8 +218,3 @@ console.log(ts);
 console.log("----------------------------");
 
 console.log(parse(ts));
-
-// does class conversion help?
-// it does if we are running a console app that is running in the engine, yeah, because there is a defined structure
-// push into expression array
-// evaluate pemdas
