@@ -163,7 +163,7 @@ const parse = (tokens) => {
                 addNode(output, operators.pop());
             }
 
-            output.pop();
+            operators.pop();
         }
     });
 
