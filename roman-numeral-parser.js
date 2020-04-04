@@ -71,6 +71,12 @@ const peek = (arr) => {
     return arr[arr.length - 1];
 } 
 
+const addNode = (arr, token) => {
+    const right = arr.pop();
+    const left = arr.pop();
+    arr.push(new AstNode(token, left, right));
+}
+
 const assign_token_type = (character) => {
     const token = { value: character, };
     
@@ -141,15 +147,12 @@ const parse = (tokens) => {
 
     tokens.forEach((token) => {
         if (token.type === token_types.DIGIT) {
-            output.push(token);
+            output.push(new AstNode(token, null, null));
         } else if (token.type === token_types.OPERATOR) {
-            while (peek(operators) && (peek(operators).type === token_types.OPERATOR)
-                && (
-                    (associativity(token) === "left" && precedence(token) < precedence(peek(operators))) ||
-                    (associativity(token) === "right" && precedence(token) < precedence(peek(operators)))
-                 )
+            while (peek(operators) && peek(operators).type === token_types.OPERATOR
+                && (associativity(token) === "left" && precedence(token) <= precedence(peek(operators)))
             ) {
-                output.push(operators.pop());
+                addNode(output, operators.pop());
             }
 
             operators.push(token);
@@ -157,15 +160,18 @@ const parse = (tokens) => {
             operators.push(token);
         } else if (token.type === token_types.R_PARENS) {
             while (peek(operators) && peek(operators).type !== token_types.L_PARENS) {
-                output.push(operators.pop());
+                addNode(output, operators.pop());
             }
 
             output.pop();
         }
-
     });
 
-    return output.concat(operators.reverse());
+    while (peek(operators)) {
+        addNode(output, operators.pop());
+    }
+
+    return output.pop();
 };
 
 const convert_numeral_to_base_10 = (numeral) => {
