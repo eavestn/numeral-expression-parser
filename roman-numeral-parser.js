@@ -110,7 +110,7 @@ const assign_token_type = (character) => {
     return token;
 };
 
-const tokenize = (base_10_expression_literal) => {
+const tokenize_expression_elements = (base_10_expression_literal) => {
     // establish a buffer (base_10_buffer_ for long-running numerical conversions as this is much faster in
     // certain engines than string concatentation. for token_candidates remove white space and convert to 
     // array of token "candidates" (uninterpreted characters)
@@ -161,7 +161,7 @@ const tokenize = (base_10_expression_literal) => {
     }
 };
 
-const parse = (tokens) => {
+const parse_tokens_into_syntax_tree = (tokens) => {
     const operators = []; // stack
     const output = []; // queue
 
@@ -237,7 +237,7 @@ const convert_numeral_to_base_10 = (numeral) => {
     return base_10_value;
 };
 
-const translate_expression = (expression) => {
+const translate_rn_expression_to_base_10_expression = (expression) => {
     const translated_array = expression.split(" ").map(element => {
         if (is_roman_numeral(element)) {
             return convert_numeral_to_base_10(element);
@@ -250,9 +250,9 @@ const translate_expression = (expression) => {
 };
 
 const result = interpret_tree(
-   parse(
-       tokenize(
-            translate_expression(numeral_literal)
+   parse_tokens_into_syntax_tree(
+       tokenize_expression_elements(
+            translate_rn_expression_to_base_10_expression(numeral_literal)
         )
     )
 );
