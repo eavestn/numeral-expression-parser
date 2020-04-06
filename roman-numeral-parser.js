@@ -249,7 +249,6 @@ const translate_expression = (expression) => {
     return translated_array.join(" ");
 };
 
-const s = "1230 + 1"; // reverse for error; assumption is in flushing of buffer bug
 const result = interpret_tree(
    parse(
        tokenize(
