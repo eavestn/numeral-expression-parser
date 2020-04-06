@@ -139,11 +139,13 @@ const tokenize = (base_10_expression_literal) => {
                 throw new Error("token type unaccounted for.");
                 break;
         }
-
-        if (tokens.length) {
-            collectAndResetNumberBuffer();
-        }
     });
+    
+    if (tokens.length) {
+        collectAndResetNumberBuffer();
+    }
+
+    return tokens;
 
     // Using function for the sake of hoisting within the tokenize function's
     // execution context; just keeps the "need-to-know" a bit cleaner
@@ -157,8 +159,6 @@ const tokenize = (base_10_expression_literal) => {
             base_10_buffer.length = 0;
         }
     }
-
-    return tokens;
 };
 
 const parse = (tokens) => {
@@ -250,14 +250,12 @@ const translate_expression = (expression) => {
 };
 
 const s = "1230 + 1"; // reverse for error; assumption is in flushing of buffer bug
-const result1 = interpret_tree(parse(tokenize(s)));
-const result2 = parse(tokenize(s));
-//interpret_tree(
-  //  parse(
-     //   tokenize(
-            //translate_expression(numeral_literal)
-        //)
-    //)
-//);
+const result = interpret_tree(
+   parse(
+       tokenize(
+            translate_expression(numeral_literal)
+        )
+    )
+);
 
-console.log(result1);
+console.log(result);
