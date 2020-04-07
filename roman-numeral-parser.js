@@ -19,6 +19,8 @@ const token_types = {
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Operator_Precedence
 const operator_precedence_and_evaluator_map = {
     "*": {
+        // "associativity" is fancy math speak for evaluation 
+        // when read without parenthesis, e.g. (from left to right)
         associativity: "left",
         precedence: 15,
         evaluate: function (x, y) {
@@ -64,51 +66,58 @@ const is_right_parens = (ch) => {
 	return /\)/.test(ch);
 };
 
-const precedence = (token) => {
-    return operator_precedence_and_evaluator_map[token.value].precedence;
-};
+const determine_token_type =(value) => {
+    // can care about a lesser set of things (e.g. no "." as we are dealing with ints);
+    // this is - theoretically - less efficient than a class for any compiler-based 
+    // optimizations by the JIT as structure can't be predicted.
+    if (is_number(value)) { 
+        return token_types.DIGIT;
+    } else if (is_operator(value)) {
+        return token_types.OPERATOR;
+    } else if (is_left_parens(value)) {
+        return token_types.L_PARENS;
+    } else if (is_right_parens(value)) {
+        return token_types.R_PARENS;
+    }
+}
 
-const associativity = (token) => {
-    return operator_precedence_and_evaluator_map[token.value].associativity;
+class Token {
+    constructor (value) {
+        this.value = value;
+        this.type = determine_token_type(value);
+    }
+    
+    associativity () {
+        return operator_precedence_and_evaluator_map[this.value].associativity;
+    }
+
+    precedence () {
+        return operator_precedence_and_evaluator_map[this.value].precedence;
+    }
 }
 
 // peek and add_node could have been assigned to the array prototype for better readability in 
-// code making use of the two functions, below. For the sake of time I didn't do this clean up.
+// code making use of the two functions, below (or potentially to their own class altogether). 
+// For the sake of time - and length - I didn't do this clean up.
 const peek = (arr) => {
     // not as "sexy" as slice(-1)[0] but faster: https://jsperf.com/last-array-element2
     return arr[arr.length - 1];
 } 
 
 const add_node = (arr, token) => {
+    // fast and dirty way to construct a tree: arr [ { Node Node } ] becomes arr [ { Node < Node, Node }]. 
     const right = arr.pop();
     const left = arr.pop();
-    arr.push(new AstNode(token, left, right));
+    arr.push(new Node(token, left, right));
 }
 
-function AstNode(token, left_node, right_node) {
-    this.token = token;
-    this.left_node = left_node;
-    this.right_node = right_node;
-}
-
-const assign_token_type = (character) => {
-    const token = { value: character, };
-    
-    // can care about a lesser set of things (e.g. no "." as we are dealing with ints);
-    // this is - theoretically - less efficient than a class for any compiler-based 
-    // optimizations by the JIT as structure can't be predicted.
-    if (is_number(character)) { 
-        token.type = token_types.DIGIT;
-    } else if (is_operator(character)) {
-        token.type = token_types.OPERATOR;
-    } else if (is_left_parens(character)) {
-        token.type = token_types.L_PARENS;
-    } else if (is_right_parens(character)) {
-        token.type = token_types.R_PARENS;
+class Node {
+    constructor (token, left_node, right_node) {
+        this.token = token;
+        this.left_node = left_node;
+        this.right_node = right_node;
     }
-
-    return token;
-};
+}
 
 const tokenize_expression_elements = (base_10_expression_literal) => {
     // establish a buffer (base_10_buffer_ for long-running numerical conversions as this is much faster in
@@ -118,8 +127,8 @@ const tokenize_expression_elements = (base_10_expression_literal) => {
     const tokens = [];
     const base_10_buffer = []; 
     const token_candidates = base_10_expression_literal.replace(/\s+/g, "").split("");
-    token_candidates.forEach((character, index) => {
-        const token = assign_token_type(character);
+    token_candidates.forEach((character) => {
+        const token = new Token(character);
 
         switch (token.type) {
             case token_types.DIGIT:
@@ -161,17 +170,32 @@ const tokenize_expression_elements = (base_10_expression_literal) => {
     }
 };
 
+const is_operator_precedence_higher_than_token = (token, operators) => {
+    // return whether an operator exists; whether it is an operator;
+    // && whether it belongs in this classification (left) and whether its
+    // precedence remains less than that of the operator "to its right"
+    return (
+        peek(operators) && peek(operators).type === token_types.OPERATOR
+        && (token.associativity() === "left" && token.precedence() <= peek(operators).precedence())
+    );
+}
+
 const parse_tokens_into_syntax_tree = (tokens) => {
     const operators = []; // stack
     const output = []; // queue
 
+    // We are now translating the tokens into an intelligble data structure: an AST representing
+    //  Reverse Polish Notation e.g. [4 3 1 - 1 * 2 -] (3 - 1, 4 2 * 1 - ) (2 * 1, 4 2 -), and 
+    // so on. We want to create an AST where a parent is the operation of one-two sibling digits 
+    // (or results). Eventually, this structure will be walked from the bottom and orders of op. 
+    // will be enforced (using precedence map).
     tokens.forEach((token) => {
         if (token.type === token_types.DIGIT) {
-            output.push(new AstNode(token, null, null));
+            output.push(new Node(token, null, null));
         } else if (token.type === token_types.OPERATOR) {
-            while (peek(operators) && peek(operators).type === token_types.OPERATOR
-                && (associativity(token) === "left" && precedence(token) <= precedence(peek(operators)))
-            ) {
+            // The only reason for abstracting this out into a function is to improve readability
+            // of the expression that results in the continuation of the while loop
+            while (is_operator_precedence_higher_than_token(token, operators)) {
                 add_node(output, operators.pop());
             }
 
@@ -200,7 +224,9 @@ const interpret_tree = (ast_node) => {
     } else {
         const token_1_value = interpret_tree(ast_node.left_node);
         const token_2_value = interpret_tree(ast_node.right_node);
-        return operator_precedence_and_evaluator_map[ast_node.token.value].evaluate(token_1_value, token_2_value);
+        const operation = operator_precedence_and_evaluator_map[ast_node.token.value];
+
+        return operation.evaluate(token_1_value, token_2_value);
     }
 };
 
@@ -211,8 +237,8 @@ const is_roman_numeral = (str) => {
 }
 
 const convert_numeral_to_base_10 = (numeral) => {
-    // could also throw a call to is_recognized_numeral in here
     if (typeof numeral !== "string") {
+         // could also throw a call to is_recognized_numeral in here
         throw new Error(`type of numeral:${typeof numeral}: does not match expected type string`);
     }
     const numeral_symbols = numeral.split("");

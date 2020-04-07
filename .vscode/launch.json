@@ -12,7 +12,7 @@
                 "<node_internals>/**"
             ],
             "program": "${workspaceFolder}\\roman-numeral-parser.js",
-            "args": ["1 + 1230"]
+            "args": ["1 + 1230 * 10 + 22 * ( 33 )"]
         }
     ]
 }
